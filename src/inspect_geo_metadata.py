@@ -1,148 +1,183 @@
-﻿from pathlib import Path
 import csv
 import gzip
-import io
+import re
+from pathlib import Path
+from collections import Counter
 
-import requests
-
-
-PROJECT_DIR = Path(__file__).resolve().parent.parent
-RAW_DIR = PROJECT_DIR / "data" / "raw"
-
-GEO_URL = (
-    "https://ftp.ncbi.nlm.nih.gov/geo/series/"
-    "GSE140nnn/GSE140440/soft/"
-    "GSE140440_family.soft.gz"
-)
-
-SOFT_PATH = RAW_DIR / "GSE140440_family.soft.gz"
-OUTPUT_PATH = RAW_DIR / "geo_sample_metadata.csv"
+SOFT_PATH = Path("data/raw/GSE140440_family.soft.gz")
+OUTPUT_PATH = Path("data/raw/geo_sample_metadata.csv")
 
 
-def download_soft():
-    RAW_DIR.mkdir(parents=True, exist_ok=True)
-
-    if SOFT_PATH.exists():
-        print(f"Using existing file: {SOFT_PATH}")
-        return
-
-    print("Downloading GEO family SOFT metadata...")
-
-    with requests.get(
-        GEO_URL, stream=True, timeout=(30, 120)
-    ) as response:
-        response.raise_for_status()
-
-        temp_path = SOFT_PATH.with_suffix(".gz.part")
-
-        try:
-            with temp_path.open("wb") as handle:
-                for chunk in response.iter_content(1024 * 1024):
-                    if chunk:
-                        handle.write(chunk)
-
-            # Check that the downloaded file is valid gzip.
-            with gzip.open(temp_path, "rb") as handle:
-                handle.read(1)
-
-            temp_path.replace(SOFT_PATH)
-
-        except Exception:
-            temp_path.unlink(missing_ok=True)
-            raise
-
-    print("Download completed.")
-
-
-def parse_soft():
-    records = []
+def parse_geo_soft(path):
+    samples = []
     current = None
 
-    with gzip.open(
-        SOFT_PATH, "rt", encoding="utf-8"
-    ) as handle:
-        for line in handle:
-            line = line.rstrip("\r\n")
+    with gzip.open(path, "rt", encoding="utf-8", errors="replace") as handle:
+        for raw_line in handle:
+            line = raw_line.rstrip("\r\n")
 
+            # Start a new GEO sample record
             if line.startswith("^SAMPLE = "):
                 if current is not None:
-                    records.append(current)
+                    samples.append(current)
 
+                accession = line.split("=", 1)[1].strip()
                 current = {
-                    "geo_accession": line.split("=", 1)[1].strip(),
-                    "title": "",
-                    "source_name_ch1": "",
-                    "characteristics_ch1": [],
+                    "geo_accession": accession,
+                    "characteristics": [],
+                    "data_processing": [],
                 }
                 continue
 
             if current is None or not line.startswith("!Sample_"):
                 continue
 
-            # SOFT fields are tab-separated and can contain
-            # quoted values. Parse them without losing tabs.
-            parts = next(csv.reader([line], delimiter="\t"))
-            key = parts[0]
+            if " = " not in line:
+                continue
 
-            values = [
-                value.strip()
-                for value in parts[1:]
-            ]
+            key, value = line.split(" = ", 1)
+            value = value.strip()
 
             if key == "!Sample_title":
-                current["title"] = " | ".join(values)
+                current["title"] = value
 
             elif key == "!Sample_source_name_ch1":
-                current["source_name_ch1"] = " | ".join(values)
+                current["source_name"] = value
 
-            elif key.startswith("!Sample_characteristics_ch1"):
-                current["characteristics_ch1"].extend(values)
+            elif key == "!Sample_characteristics_ch1":
+                current["characteristics"].append(value)
 
-        if current is not None:
-            records.append(current)
+            elif key == "!Sample_supplementary_file_1":
+                current["supplementary_file"] = value
 
-    if not records:
-        raise ValueError(
-            "No sample records were found in the GEO SOFT file."
+            elif key == "!Sample_treatment_protocol_ch1":
+                current["treatment_protocol"] = value
+
+            elif key == "!Sample_organism_ch1":
+                current["organism"] = value
+
+            elif key == "!Sample_data_processing":
+                current["data_processing"].append(value)
+
+    if current is not None:
+        samples.append(current)
+
+    return samples
+
+
+def characteristic_value(characteristics, field_name):
+    """Extract a value such as 'cell line: DU145'."""
+    prefix = field_name.lower() + ":"
+
+    for item in characteristics:
+        key, separator, value = item.partition(":")
+        if separator and key.strip().lower() == field_name.lower():
+            return value.strip()
+
+    return ""
+
+
+def extract_sample(sample):
+    characteristics = sample.get("characteristics", [])
+
+    response = characteristic_value(characteristics, "docetaxel")
+    cell_line = characteristic_value(characteristics, "cell line")
+    disease = characteristic_value(characteristics, "disease state")
+
+    # Use an explicit characteristic when available.
+    if response.lower() not in {"sensitive", "resistant"}:
+        response = "UNRESOLVED"
+
+    supplementary_url = sample.get("supplementary_file", "")
+    supplementary_filename = (
+        supplementary_url.rsplit("/", 1)[-1]
+        if supplementary_url else ""
+    )
+
+    # Extract the genome build only from an explicit processing statement.
+    processing_text = " ".join(sample.get("data_processing", []))
+    genome_match = re.search(
+        r"Genome_build:\s*([^;,\s]+)",
+        processing_text,
+        flags=re.IGNORECASE,
+    )
+
+    return {
+        "geo_accession": sample.get("geo_accession", ""),
+        "title": sample.get("title", ""),
+        "source_name": sample.get("source_name", ""),
+        "cell_line": cell_line,
+        "docetaxel_response": response,
+        "disease_state": disease,
+        "organism": sample.get("organism", ""),
+        "supplementary_filename": supplementary_filename,
+        "treatment_protocol": sample.get("treatment_protocol", ""),
+        "genome_build": genome_match.group(1) if genome_match else "",
+        "characteristics_all": " | ".join(characteristics),
+    }
+
+
+def main():
+    if not SOFT_PATH.exists():
+        raise FileNotFoundError(
+            f"Metadata file not found: {SOFT_PATH}"
         )
+
+    print("Parsing GEO family SOFT metadata...")
+
+    raw_samples = parse_geo_soft(SOFT_PATH)
+    records = [extract_sample(sample) for sample in raw_samples]
 
     fieldnames = [
         "geo_accession",
         "title",
-        "source_name_ch1",
-        "characteristics_ch1",
+        "source_name",
+        "cell_line",
+        "docetaxel_response",
+        "disease_state",
+        "organism",
+        "supplementary_filename",
+        "treatment_protocol",
+        "genome_build",
+        "characteristics_all",
     ]
 
-    with OUTPUT_PATH.open(
-        "w", newline="", encoding="utf-8-sig"
-    ) as handle:
-        writer = csv.DictWriter(
-            handle, fieldnames=fieldnames
-        )
-        writer.writeheader()
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-        for record in records:
-            record["characteristics_ch1"] = " ; ".join(
-                record["characteristics_ch1"]
-            )
-            writer.writerow(record)
+    with OUTPUT_PATH.open("w", newline="", encoding="utf-8-sig") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(records)
 
     print(f"Sample records parsed: {len(records)}")
-    print(f"Metadata saved to: {OUTPUT_PATH}")
-    print("\nFirst 8 sample records:")
+    print(f"Metadata saved to: {OUTPUT_PATH.resolve()}")
 
-    for record in records[:8]:
+    print("\nFirst 10 samples:")
+    for row in records[:10]:
         print(
-            record["geo_accession"],
-            "|", record["title"],
-            "|", record["source_name_ch1"],
-            "|", " ; ".join(record["characteristics_ch1"]),
+            f"{row['geo_accession']} | "
+            f"{row['title']} | "
+            f"{row['cell_line']} | "
+            f"{row['docetaxel_response']} | "
+            f"{row['supplementary_filename']}"
         )
 
+    print("\nCell-line counts:")
+    print(dict(Counter(r["cell_line"] or "MISSING" for r in records)))
 
-def main():
-    download_soft()
-    parse_soft()
+    print("\nDocetaxel-response counts:")
+    print(dict(Counter(r["docetaxel_response"] for r in records)))
+
+    unresolved = [
+        r["geo_accession"]
+        for r in records
+        if r["cell_line"] == ""
+        or r["docetaxel_response"] == "UNRESOLVED"
+    ]
+
+    print(f"\nSamples with unresolved labels: {len(unresolved)}")
+    if unresolved:
+        print("Review these accessions:", ", ".join(unresolved[:20]))
 
 
 if __name__ == "__main__":
