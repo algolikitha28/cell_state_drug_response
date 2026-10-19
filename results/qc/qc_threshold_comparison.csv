@@ -1,0 +1,25 @@
+rule,cell_line,response,original_cells,retained_cells,removed_cells,retained_percent
+No filtering,DU145,Resistant,72,72,0,100.0
+No filtering,DU145,Sensitive,72,72,0,100.0
+No filtering,PC3,Resistant,90,90,0,100.0
+No filtering,PC3,Sensitive,90,90,0,100.0
+Counts >= 200000,DU145,Resistant,72,72,0,100.0
+Counts >= 200000,DU145,Sensitive,72,70,2,97.22
+Counts >= 200000,PC3,Resistant,90,88,2,97.78
+Counts >= 200000,PC3,Sensitive,90,90,0,100.0
+Genes >= 5000,DU145,Resistant,72,72,0,100.0
+Genes >= 5000,DU145,Sensitive,72,70,2,97.22
+Genes >= 5000,PC3,Resistant,90,87,3,96.67
+Genes >= 5000,PC3,Sensitive,90,89,1,98.89
+Mitochondrial < 20%,DU145,Resistant,72,72,0,100.0
+Mitochondrial < 20%,DU145,Sensitive,72,69,3,95.83
+Mitochondrial < 20%,PC3,Resistant,90,87,3,96.67
+Mitochondrial < 20%,PC3,Sensitive,90,81,9,90.0
+Counts >= 200000 AND genes >= 5000,DU145,Resistant,72,72,0,100.0
+Counts >= 200000 AND genes >= 5000,DU145,Sensitive,72,69,3,95.83
+Counts >= 200000 AND genes >= 5000,PC3,Resistant,90,87,3,96.67
+Counts >= 200000 AND genes >= 5000,PC3,Sensitive,90,89,1,98.89
+All three thresholds,DU145,Resistant,72,72,0,100.0
+All three thresholds,DU145,Sensitive,72,68,4,94.44
+All three thresholds,PC3,Resistant,90,85,5,94.44
+All three thresholds,PC3,Sensitive,90,81,9,90.0
