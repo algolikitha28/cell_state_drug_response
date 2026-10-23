@@ -1,0 +1,5 @@
+cell_line,docetaxel_response,original_cells,cells_flagged,median_counts,median_genes,median_mito_percent
+DU145,Resistant,72,5,2822510.5,12141.5,5.621624519321074
+DU145,Sensitive,72,11,2935309.5,12631.5,4.283548194163107
+PC3,Resistant,90,6,2052610.0,11873.0,9.163916704307614
+PC3,Sensitive,90,14,1699278.0,10784.0,9.228003894271705
