@@ -23,3 +23,11 @@ All three thresholds,DU145,Resistant,72,72,0,100.0
 All three thresholds,DU145,Sensitive,72,68,4,94.44
 All three thresholds,PC3,Resistant,90,85,5,94.44
 All three thresholds,PC3,Sensitive,90,81,9,90.0
+Proposed exclusions (2 cells),DU145,Resistant,72,72,0,100.0
+Proposed exclusions (2 cells),DU145,Sensitive,72,71,1,98.61
+Proposed exclusions (2 cells),PC3,Resistant,90,89,1,98.89
+Proposed exclusions (2 cells),PC3,Sensitive,90,90,0,100.0
+Expanded proposed exclusions (5 cells),DU145,Resistant,72,72,0,100.0
+Expanded proposed exclusions (5 cells),DU145,Sensitive,72,69,3,95.83
+Expanded proposed exclusions (5 cells),PC3,Resistant,90,89,1,98.89
+Expanded proposed exclusions (5 cells),PC3,Sensitive,90,89,1,98.89
