@@ -1,0 +1,5 @@
+cell_line,docetaxel_response,cell_count
+DU145,Resistant,72
+DU145,Sensitive,71
+PC3,Resistant,89
+PC3,Sensitive,90
