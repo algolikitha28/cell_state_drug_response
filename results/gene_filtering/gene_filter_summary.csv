@@ -1,0 +1,5 @@
+step,criterion,genes_remaining
+0,All genes in normalized input,60554
+1,Detected in >=10 cells in both cell lines,19041
+2,Remove lowest 15% by mean raw counts,16184
+3,Also detected in >=10 cells in all four groups,13795
