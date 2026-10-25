@@ -1,0 +1,3 @@
+group,input_rows,unique_symbols,duplicate_symbol_rows_removed,gene_list_file
+resistant,3948,3948,0,results\pathways\resistant_shared_direction_genes.txt
+sensitive,3420,3398,22,results\pathways\sensitive_shared_direction_genes.txt
