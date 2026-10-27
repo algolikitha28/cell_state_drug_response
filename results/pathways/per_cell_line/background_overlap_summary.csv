@@ -1,0 +1,5 @@
+gene_list,input_genes,genes_in_background,genes_not_in_background
+DU145_resistant_genes,7566,7566,0
+DU145_sensitive_genes,6193,6193,0
+PC3_resistant_genes,6743,6743,0
+PC3_sensitive_genes,7012,7012,0
