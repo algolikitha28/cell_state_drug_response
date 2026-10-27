@@ -1,0 +1,5 @@
+cell_line,group,rows_in_direction,unique_gene_symbols,output_file
+DU145,resistant,7578,7566,results\pathways\per_cell_line\DU145_resistant_genes.txt
+DU145,sensitive,6217,6193,results\pathways\per_cell_line\DU145_sensitive_genes.txt
+PC3,resistant,6745,6743,results\pathways\per_cell_line\PC3_resistant_genes.txt
+PC3,sensitive,7050,7012,results\pathways\per_cell_line\PC3_sensitive_genes.txt
